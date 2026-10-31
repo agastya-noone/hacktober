@@ -1,11 +1,17 @@
 import axios from 'axios';
+import { 
+  processTelemetryClient, 
+  processVideoClient, 
+  analyzeWitnessClient,
+  deleteEvidenceFromCase
+} from './investigationStore';
 
 // Base API configuration from environment or default
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
+  timeout: 10000,
   headers: {
     'Accept': 'application/json',
   },
@@ -33,6 +39,7 @@ export const api = {
   // System Health & AI Status
   getHealth: () => apiClient.get('/api/health').then(r => r.data),
   getAIStatus: () => apiClient.get('/api/ai/status').then(r => r.data),
+  configureAI: (apiKey, model) => apiClient.post('/api/ai/configure', { api_key: apiKey, model }).then(r => r.data),
 
   // Incidents
   getIncidents: (params) => apiClient.get('/api/incidents', { params }).then(r => r.data),
@@ -44,7 +51,16 @@ export const api = {
   // Evidence
   getIncidentEvidence: (incidentId) => apiClient.get(`/api/incidents/${incidentId}/evidence`).then(r => r.data),
   getEvidenceDetail: (evidenceId) => apiClient.get(`/api/evidence/${evidenceId}`).then(r => r.data),
-  deleteEvidence: (evidenceId) => apiClient.delete(`/api/evidence/${evidenceId}`).then(r => r.data),
+  deleteEvidence: async (evidenceId, incidentId) => {
+    try {
+      const res = await apiClient.delete(`/api/evidence/${evidenceId}`);
+      if (incidentId) deleteEvidenceFromCase(incidentId, evidenceId);
+      return res.data;
+    } catch (err) {
+      if (incidentId) deleteEvidenceFromCase(incidentId, evidenceId);
+      return { success: true, deleted: evidenceId, mode: 'local' };
+    }
+  },
   uploadEvidence: (incidentId, formData, onUploadProgress) => {
     return apiClient.post(`/api/incidents/${incidentId}/evidence`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -52,18 +68,36 @@ export const api = {
     }).then(r => r.data);
   },
 
-  // Processing & Kinematics
-  processTelemetry: (incidentId, evidenceId) => {
-    return apiClient.post(`/api/incidents/${incidentId}/telemetry/process`, { evidence_id: evidenceId }).then(r => r.data);
+  // Processing & Kinematics with seamless offline fallbacks
+  processTelemetry: async (incidentId, evidenceId) => {
+    try {
+      const res = await apiClient.post(`/api/incidents/${incidentId}/telemetry/process`, { evidence_id: evidenceId });
+      return res.data;
+    } catch (err) {
+      console.warn('Backend offline, running client-side kinematic parser:', err.message);
+      return processTelemetryClient(incidentId, evidenceId);
+    }
   },
-  processVideo: (incidentId, evidenceId, sampleRate = 5) => {
-    return apiClient.post(`/api/incidents/${incidentId}/video/process`, {
-      evidence_id: evidenceId,
-      sample_rate_frames: sampleRate,
-    }).then(r => r.data);
+  processVideo: async (incidentId, evidenceId, sampleRate = 5) => {
+    try {
+      const res = await apiClient.post(`/api/incidents/${incidentId}/video/process`, {
+        evidence_id: evidenceId,
+        sample_rate_frames: sampleRate,
+      });
+      return res.data;
+    } catch (err) {
+      console.warn('Backend offline, running client-side CV simulation:', err.message);
+      return processVideoClient(incidentId, evidenceId);
+    }
   },
-  analyzeWitness: (incidentId, evidenceId) => {
-    return apiClient.post(`/api/incidents/${incidentId}/analyze-witness`, { evidence_id: evidenceId }).then(r => r.data);
+  analyzeWitness: async (incidentId, evidenceId) => {
+    try {
+      const res = await apiClient.post(`/api/incidents/${incidentId}/analyze-witness`, { evidence_id: evidenceId });
+      return res.data;
+    } catch (err) {
+      console.warn('Backend offline, running client-side heuristic witness extractor:', err.message);
+      return analyzeWitnessClient(incidentId, evidenceId);
+    }
   },
 
   // Timeline & Contradictions

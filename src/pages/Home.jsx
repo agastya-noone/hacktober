@@ -58,7 +58,7 @@ export default function Home() {
             </Link>
 
             <Link
-              to="/investigation/INC-20261030-DEMO1"
+              to="/investigation/DEMO-CASE-01"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded bg-white border border-slate-300 text-slate-800 font-medium text-sm hover:bg-slate-100 transition-colors"
             >
               <span>View Demo</span>

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Files, Car, AlertCircle, ArrowRight, Shield, RefreshCw } from 'lucide-react';
+import { Plus, Files, Car, AlertCircle, ArrowRight, Shield, RefreshCw, Eye } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import { api } from '../services/api';
-import { DEMO_INCIDENT } from '../services/demoData';
+import { DEMO_INCIDENT, DEMO_CASE_ID } from '../services/demoData';
+import { getUserInvestigations, isDemoId } from '../services/investigationStore';
 
 export default function Dashboard() {
   const [incidents, setIncidents] = useState([]);
@@ -20,39 +21,72 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.getIncidents();
-      const list = Array.isArray(data) ? data : [];
+      // 1. Load user investigations from storage
+      const userCases = getUserInvestigations().map(c => c.incident);
       
-      // If list is empty from freshly initialized db, include the demo incident in the display
-      const displayList = list.length > 0 ? list : [DEMO_INCIDENT];
-      setIncidents(displayList);
+      // 2. Try fetching from backend
+      let backendList = [];
+      try {
+        const data = await api.getIncidents();
+        backendList = Array.isArray(data) ? data : [];
+      } catch (beErr) {
+        console.warn('Backend fetch unavail, using local user store & demo:', beErr.message);
+      }
+
+      // 3. Merge user cases, backend cases, and the isolated demo case
+      const seen = new Set();
+      const combined = [];
+
+      // Add user cases first (latest on top)
+      userCases.forEach(inc => {
+        if (!seen.has(inc.id)) {
+          seen.add(inc.id);
+          combined.push(inc);
+        }
+      });
+
+      // Add backend cases
+      backendList.forEach(inc => {
+        if (!seen.has(inc.id) && !isDemoId(inc.id)) {
+          seen.add(inc.id);
+          combined.push(inc);
+        }
+      });
+
+      // Ensure the official DEMO case is present in the list
+      if (!seen.has(DEMO_INCIDENT.id)) {
+        combined.push(DEMO_INCIDENT);
+      }
+
+      setIncidents(combined);
 
       // Compute dashboard stats
       let totalEvidence = 0;
       let totalVehicles = 0;
       let pending = 0;
 
-      displayList.forEach(inc => {
-        totalEvidence += inc.evidence_count || (inc.id === DEMO_INCIDENT.id ? DEMO_INCIDENT.evidence_count : 0);
-        totalVehicles += inc.vehicle_ids?.length || (inc.id === DEMO_INCIDENT.id ? DEMO_INCIDENT.vehicle_ids.length : 1);
+      combined.forEach(inc => {
+        totalEvidence += inc.evidence_count || 0;
+        totalVehicles += (inc.vehicles && inc.vehicles.length) || (inc.vehicle_ids && inc.vehicle_ids.length) || 0;
         if (inc.status === 'OPEN' || inc.status === 'UNDER_INVESTIGATION') {
           pending += 1;
         }
       });
 
       setStats({
-        totalInvestigations: displayList.length,
+        totalInvestigations: combined.length,
         evidenceFiles: totalEvidence,
         vehiclesIdentified: Math.max(totalVehicles, 2),
         pendingAnalysis: pending,
       });
     } catch (err) {
-      // Backend unavailable fallback: show demo incident cleanly
-      setIncidents([DEMO_INCIDENT]);
+      const userCases = getUserInvestigations().map(c => c.incident);
+      const fallbackList = userCases.length > 0 ? [...userCases, DEMO_INCIDENT] : [DEMO_INCIDENT];
+      setIncidents(fallbackList);
       setStats({
-        totalInvestigations: 1,
+        totalInvestigations: fallbackList.length,
         evidenceFiles: DEMO_INCIDENT.evidence_count,
-        vehiclesIdentified: DEMO_INCIDENT.vehicle_ids.length,
+        vehiclesIdentified: 2,
         pendingAnalysis: 1,
       });
       setError(err.message);
@@ -87,6 +121,15 @@ export default function Dashboard() {
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
+
+          <Link
+            to={`/investigation/${DEMO_CASE_ID}`}
+            className="btn btn-secondary btn-sm text-[#0b2545] border-slate-300"
+            title="Inspect verified demonstration dataset"
+          >
+            <Eye className="w-3.5 h-3.5 text-slate-500" />
+            <span>View Demo Case</span>
+          </Link>
 
           <Link to="/new-investigation" className="btn btn-primary">
             <Plus className="w-4 h-4" />
@@ -174,19 +217,32 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {incidents.map((inc) => (
-                <tr key={inc.id}>
-                  <td className="font-mono text-xs font-semibold text-slate-900 whitespace-nowrap">
-                    {inc.id}
-                  </td>
-                  <td>
-                    <div className="font-semibold text-slate-900 text-xs">
-                      {inc.title}
-                    </div>
-                    <div className="text-[11px] text-slate-500 truncate max-w-xs">
-                      {inc.location}
-                    </div>
-                  </td>
+              {incidents.map((inc) => {
+                const isDemo = isDemoId(inc.id);
+                return (
+                  <tr key={inc.id} className={isDemo ? 'bg-slate-50/40' : ''}>
+                    <td className="whitespace-nowrap">
+                      <div className="font-mono text-xs font-semibold text-slate-900">
+                        {inc.id}
+                      </div>
+                      {isDemo ? (
+                        <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200 mt-0.5">
+                          Demo (Read-Only)
+                        </span>
+                      ) : (
+                        <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 mt-0.5">
+                          Active User Case
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="font-semibold text-slate-900 text-xs">
+                        {inc.title}
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate max-w-xs">
+                        {inc.location}
+                      </div>
+                    </td>
                   <td className="text-xs text-slate-600 whitespace-nowrap">
                     {new Date(inc.incident_date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                   </td>
@@ -208,8 +264,9 @@ export default function Dashboard() {
                     </Link>
                   </td>
                 </tr>
-              ))}
-            </tbody>
+              );
+            })}
+          </tbody>
           </table>
         </div>
       </div>

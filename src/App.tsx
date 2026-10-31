@@ -8,6 +8,8 @@ import InvestigationWorkspace from './pages/InvestigationWorkspace';
 import './styles/global.css';
 import './styles/components.css';
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -15,13 +17,15 @@ export default function App() {
         <Navbar />
 
         <div className="main-content">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/new-investigation" element={<NewInvestigation />} />
-            <Route path="/investigation/:id/*" element={<InvestigationWorkspace />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/new-investigation" element={<NewInvestigation />} />
+              <Route path="/investigation/:id/*" element={<InvestigationWorkspace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </ErrorBoundary>
         </div>
 
         {/* Global Minimal Footer */}

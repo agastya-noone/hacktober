@@ -4,11 +4,22 @@ import { Files, Clock, Layers, GitFork, FileText, ArrowRight, ShieldCheck, MapPi
 import VehicleCard from '../components/VehicleCard';
 import StatusBadge from '../components/StatusBadge';
 
-export default function WorkspaceOverview({ incident, evidence = [], timeline, contradictions }) {
+export default function WorkspaceOverview({ incident, evidence = [], timeline, contradictions, vehicles = [] }) {
   const { id } = useParams();
   const incidentId = id || incident?.id;
 
-  const vehicleIds = timeline?.vehicle_ids || incident?.vehicle_ids || ['VEH_01', 'VEH_02'];
+  const vehicleList = (vehicles && vehicles.length > 0)
+    ? vehicles
+    : (incident?.vehicles && incident.vehicles.length > 0)
+    ? incident.vehicles
+    : (timeline?.vehicle_ids || []).map((vId) => ({
+        vehicle_id: vId,
+        role: 'Identified Vehicle',
+        max_speed_kmh: 0,
+        avg_speed_kmh: 0,
+        max_deceleration_mps2: 0,
+        brake_activations_count: 0,
+      }));
 
   return (
     <div className="space-y-6">
@@ -95,7 +106,7 @@ export default function WorkspaceOverview({ incident, evidence = [], timeline, c
             <Layers className="w-4 h-4 text-slate-400 group-hover:text-[#0b2545]" />
           </div>
           <div className="text-2xl font-bold font-mono text-slate-900">
-            {vehicleIds.length}
+            {vehicleList.length}
           </div>
           <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
             <span>3D & Video</span>
@@ -123,22 +134,32 @@ export default function WorkspaceOverview({ incident, evidence = [], timeline, c
 
       {/* Tracked Vehicles Section */}
       <div>
-        <h2 className="text-sm font-semibold text-slate-900 mb-3">Identified Vehicles & Kinematic Profiles</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {vehicleIds.map((vId) => (
-            <VehicleCard
-              key={vId}
-              vehicle={{ vehicle_id: vId, role: vId === 'VEH_01' ? 'LEAD_VEHICLE' : 'APPROACHING_VEHICLE' }}
-              summary={{
-                vehicle_id: vId,
-                max_speed_kmh: vId === 'VEH_01' ? 52.4 : 76.1,
-                avg_speed_kmh: vId === 'VEH_01' ? 38.2 : 62.0,
-                max_deceleration_mps2: vId === 'VEH_01' ? 7.8 : 9.4,
-                brake_activations_count: 1,
-              }}
-            />
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-slate-900 m-0">Participating Vehicles & Kinematic Intake</h2>
+          <span className="text-xs text-slate-500">{vehicleList.length} vehicle(s) tracked</span>
         </div>
+
+        {vehicleList.length === 0 ? (
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded text-xs text-slate-500 text-center">
+            No vehicle profiles currently defined. Upload telemetry CSV or edit case intake.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {vehicleList.map((v) => (
+              <VehicleCard
+                key={v.vehicle_id || v.id}
+                vehicle={v}
+                summary={{
+                  vehicle_id: v.vehicle_id,
+                  max_speed_kmh: v.max_speed_kmh,
+                  avg_speed_kmh: v.avg_speed_kmh,
+                  max_deceleration_mps2: v.max_deceleration_mps2,
+                  brake_activations_count: v.brake_activations_count,
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Forensic Integrity Notice */}

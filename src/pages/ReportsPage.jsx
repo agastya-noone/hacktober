@@ -12,7 +12,14 @@ import {
 import StatusBadge from '../components/StatusBadge';
 import { api } from '../services/api';
 
-export default function ReportsPage({ incident, evidence = [], timeline, contradictions }) {
+export default function ReportsPage({ 
+  incident, 
+  evidence = [], 
+  timeline, 
+  contradictions,
+  vehicles = [],
+  isDemo = false,
+}) {
   const [exporting, setExporting] = useState(false);
 
   const handlePrint = () => {
@@ -22,6 +29,8 @@ export default function ReportsPage({ incident, evidence = [], timeline, contrad
   const handleExportJSON = () => {
     const reportData = {
       incident: incident || {},
+      is_demo: isDemo,
+      vehicles: vehicles,
       generated_at: new Date().toISOString(),
       evidence_inventory: evidence.map(e => ({
         id: e.id,
@@ -115,11 +124,22 @@ export default function ReportsPage({ incident, evidence = [], timeline, contrad
 
         {/* Section 1: Executive Summary */}
         <div className="mb-6">
-          <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-900 mb-2 pb-1 border-b border-slate-200">
-            1. Executive Investigation Summary
-          </h3>
+          <div className="flex items-center justify-between pb-1 border-b border-slate-200 mb-2">
+            <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-900 m-0">
+              1. Executive Investigation Summary
+            </h3>
+            {isDemo && (
+              <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
+                Verified Demonstration Dataset (Read-Only)
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-700 leading-relaxed">
-            On {new Date(incident?.incident_date || Date.now()).toLocaleDateString()}, a multi-vehicle traffic collision occurred at {incident?.location}. Analysis of synchronized CAN bus vehicle telemetry, forward-facing video optical flow, and independent witness depositions was conducted by TRACE AI. Reconstructed telemetry establishes that Vehicle 1 was traveling at 52.4 km/h when brake pedal actuation commenced 2.5 seconds prior to impact. Vehicle 2 was approaching at 76.1 km/h with an emergency deceleration rate reaching -9.40 m/s².
+            {incident?.description ? (
+              incident.description
+            ) : (
+              `On ${new Date(incident?.incident_date || Date.now()).toLocaleDateString()}, an accident occurred at ${incident?.location || 'unspecified location'}. Evidence intake records ${evidence.length} authenticated items and ${vehicles.length} vehicle profile(s). Synchronized analysis of physical telemetry, optical flow observations, and testimonial statements was performed under strict forensic neutrality.`
+            )}
           </p>
         </div>
 
@@ -139,14 +159,22 @@ export default function ReportsPage({ incident, evidence = [], timeline, contrad
                 </tr>
               </thead>
               <tbody>
-                {evidence.map((ev) => (
-                  <tr key={ev.id}>
-                    <td className="font-mono font-bold">{ev.id}</td>
-                    <td>{ev.filename}</td>
-                    <td><StatusBadge status={ev.file_type} type="file_type" /></td>
-                    <td className="font-mono text-[10px] break-all">{ev.sha256_hash}</td>
+                {evidence.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-4 text-xs text-slate-400">
+                      No files uploaded yet for this investigation. Use the Evidence Vault to add dashcam footage, CAN bus logs, or witness statements.
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  evidence.map((ev) => (
+                    <tr key={ev.id}>
+                      <td className="font-mono font-bold">{ev.id}</td>
+                      <td>{ev.filename}</td>
+                      <td><StatusBadge status={ev.file_type} type="file_type" /></td>
+                      <td className="font-mono text-[10px] break-all">{ev.sha256_hash}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -157,20 +185,46 @@ export default function ReportsPage({ incident, evidence = [], timeline, contrad
           <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-900 mb-2 pb-1 border-b border-slate-200">
             3. Vehicle Kinematic Summary
           </h3>
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-              <div className="font-bold text-slate-900 mb-1">Vehicle 1 (Lead Sedan)</div>
-              <div>Maximum Recorded Velocity: <strong>52.4 km/h</strong></div>
-              <div>Deceleration at Impact: <strong>-7.80 m/s²</strong></div>
-              <div>Brake Actuation Status: <strong>Confirmed Active (CAN Switch 0x18F)</strong></div>
+          {vehicles.length === 0 ? (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded text-xs text-slate-500 text-center">
+              No vehicle kinematic profiles registered for this case. Initial vehicle parameters can be configured during intake or updated via telemetry analysis.
             </div>
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-              <div className="font-bold text-slate-900 mb-1">Vehicle 2 (Commercial Van)</div>
-              <div>Maximum Recorded Velocity: <strong>76.1 km/h</strong></div>
-              <div>Peak Impact Deceleration: <strong>-9.40 m/s²</strong></div>
-              <div>Brake Actuation Status: <strong>Confirmed Active (-1.8s Pre-Impact)</strong></div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {vehicles.map((v, idx) => (
+                <div key={v.id || idx} className="p-3 bg-slate-50 border border-slate-200 rounded">
+                  <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-slate-200">
+                    <span className="font-bold text-slate-900">
+                      {v.vehicle_id} {v.make_model ? `(${v.make_model})` : ''}
+                    </span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-700">
+                      {v.role}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Maximum Recorded Velocity:</span>
+                      <strong className="text-slate-800">{v.max_speed_kmh?.toFixed ? v.max_speed_kmh.toFixed(1) : v.max_speed_kmh} km/h</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Average Zone Speed:</span>
+                      <strong className="text-slate-800">{v.avg_speed_kmh?.toFixed ? v.avg_speed_kmh.toFixed(1) : v.avg_speed_kmh} km/h</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Peak Deceleration:</span>
+                      <strong className="text-slate-800">-{Math.abs(v.max_deceleration_mps2 || 0).toFixed(2)} m/s²</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Brake Actuation Log:</span>
+                      <strong className={v.brake_activations_count > 0 ? "text-emerald-700 font-medium" : "text-slate-600"}>
+                        {v.brake_activations_count > 0 ? `Confirmed Active (${v.brake_activations_count} event(s))` : 'No Actuation Logged'}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Section 4: Chronological Timeline */}

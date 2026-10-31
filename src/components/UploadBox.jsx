@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileVideo, FileText, Activity, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { api } from '../services/api';
+import { addEvidenceToCase } from '../services/investigationStore';
 
 export default function UploadBox({ incidentId, onUploadSuccess }) {
   const [activeCategory, setActiveCategory] = useState('VIDEO'); // 'VIDEO' | 'WITNESS_STATEMENT' | 'TELEMETRY'
@@ -56,7 +57,7 @@ export default function UploadBox({ incidentId, onUploadSuccess }) {
     }
 
     setUploading(true);
-    setProgress(10);
+    setProgress(15);
     setError(null);
     setLastUploaded(null);
 
@@ -66,20 +67,55 @@ export default function UploadBox({ incidentId, onUploadSuccess }) {
     if (vehicleId) formData.append('vehicle_id', vehicleId);
 
     try {
-      const response = await api.uploadEvidence(incidentId, formData, (progressEvent) => {
-        if (progressEvent.total) {
-          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setProgress(Math.min(95, percent));
+      let record;
+      try {
+        record = await api.uploadEvidence(incidentId, formData, (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(Math.min(95, percent));
+          }
+        });
+      } catch (beErr) {
+        // If backend is offline, calculate real SHA-256 via Web Crypto API
+        const arrayBuf = await selectedFile.arrayBuffer();
+        const hashBuf = await crypto.subtle.digest('SHA-256', arrayBuf);
+        const hashArray = Array.from(new Uint8Array(hashBuf));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        let fileContent = null;
+        if (activeCategory === 'WITNESS_STATEMENT' || activeCategory === 'TELEMETRY') {
+          try {
+            fileContent = await selectedFile.text();
+          } catch (e) {
+            console.warn('Could not read text content:', e);
+          }
         }
-      });
 
+        record = {
+          id: `EVD-${Date.now().toString().slice(-6)}`,
+          incident_id: incidentId,
+          filename: selectedFile.name,
+          file_type: activeCategory,
+          file_size_bytes: selectedFile.size,
+          sha256_hash: hashHex,
+          uploaded_at: new Date().toISOString(),
+          upload_timestamp: new Date().toISOString(),
+          status: 'UNPROCESSED',
+          is_processed: false,
+          content: fileContent,
+          description: description || `${activeCategory} uploaded to case vault`,
+          vehicle_id: vehicleId || null,
+        };
+      }
+
+      addEvidenceToCase(incidentId, record);
       setProgress(100);
-      setLastUploaded(response);
+      setLastUploaded(record);
       setSelectedFile(null);
       setDescription('');
       setVehicleId('');
       if (onUploadSuccess) {
-        onUploadSuccess(response);
+        onUploadSuccess(record);
       }
     } catch (err) {
       setError(err.message || 'Failed to upload evidence to server.');

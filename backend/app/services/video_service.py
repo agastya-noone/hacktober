@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 import cv2
 import numpy as np
 

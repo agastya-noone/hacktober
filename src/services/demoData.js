@@ -1,6 +1,8 @@
+export const DEMO_CASE_ID = "DEMO-CASE-01";
+
 // Authentic verified demonstration case: Multi-Vehicle Intersection Collision
 export const DEMO_INCIDENT = {
-  id: "INC-20261030-DEMO1",
+  id: DEMO_CASE_ID,
   title: "State Route 85 & Almaden Expressway Collision",
   location: "SR-85 Northbound Exit 7, San Jose, CA",
   incident_date: "2026-10-30T14:22:15",
@@ -9,14 +11,15 @@ export const DEMO_INCIDENT = {
   created_at: "2026-10-30T14:45:00",
   updated_at: "2026-10-30T15:30:00",
   evidence_count: 3,
-  event_count: 11,
+  event_count: 9,
   vehicle_ids: ["VEH_01", "VEH_02"],
+  isDemo: true,
 };
 
 export const DEMO_EVIDENCE = [
   {
     id: "EVD-VIDEO-01",
-    incident_id: "INC-20261030-DEMO1",
+    incident_id: "DEMO-CASE-01",
     filename: "dashcam_northbound_h264.mp4",
     original_filename: "dashcam_northbound_h264.mp4",
     file_type: "VIDEO",
@@ -39,7 +42,7 @@ export const DEMO_EVIDENCE = [
   },
   {
     id: "EVD-TELEM-01",
-    incident_id: "INC-20261030-DEMO1",
+    incident_id: "DEMO-CASE-01",
     filename: "telemetry_canbus_log.csv",
     original_filename: "telemetry_canbus_log.csv",
     file_type: "TELEMETRY",
@@ -80,7 +83,7 @@ export const DEMO_EVIDENCE = [
   },
   {
     id: "EVD-STMT-01",
-    incident_id: "INC-20261030-DEMO1",
+    incident_id: "DEMO-CASE-01",
     filename: "witness_statement_martinez.txt",
     original_filename: "witness_statement_martinez.txt",
     file_type: "WITNESS_STATEMENT",
@@ -119,7 +122,7 @@ export const DEMO_EVIDENCE = [
 ];
 
 export const DEMO_TIMELINE = {
-  incident_id: "INC-20261030-DEMO1",
+  incident_id: "DEMO-CASE-01",
   total_events: 9,
   chronological_order_verified: true,
   classifications_breakdown: {
@@ -136,7 +139,7 @@ export const DEMO_TIMELINE = {
   events: [
     {
       id: "EVT-001",
-      incident_id: "INC-20261030-DEMO1",
+      incident_id: "DEMO-CASE-01",
       timestamp: "2026-10-30T14:22:10.000",
       vehicle_id: "VEH_01",
       event_type: "VEHICLE_APPROACH",
@@ -149,7 +152,7 @@ export const DEMO_TIMELINE = {
     },
     {
       id: "EVT-002",
-      incident_id: "INC-20261030-DEMO1",
+      incident_id: "DEMO-CASE-01",
       timestamp: "2026-10-30T14:22:11.200",
       vehicle_id: "VEH_02",
       event_type: "VEHICLE_APPROACH",
@@ -162,7 +165,7 @@ export const DEMO_TIMELINE = {
     },
     {
       id: "EVT-003",
-      incident_id: "INC-20261030-DEMO1",
+      incident_id: "DEMO-CASE-01",
       timestamp: "2026-10-30T14:22:12.400",
       vehicle_id: "VEH_01",
       event_type: "BRAKE_ACTIVATION",
@@ -175,7 +178,7 @@ export const DEMO_TIMELINE = {
     },
     {
       id: "EVT-004",
-      incident_id: "INC-20261030-DEMO1",
+      incident_id: "DEMO-CASE-01",
       timestamp: "2026-10-30T14:22:13.100",
       vehicle_id: "VEH_02",
       event_type: "BRAKE_ACTIVATION",
@@ -188,7 +191,7 @@ export const DEMO_TIMELINE = {
     },
     {
       id: "EVT-005",
-      incident_id: "INC-20261030-DEMO1",
+      incident_id: "DEMO-CASE-01",
       timestamp: "2026-10-30T14:22:13.800",
       vehicle_id: "VEH_02",
       event_type: "DECELERATION",
@@ -201,7 +204,7 @@ export const DEMO_TIMELINE = {
     },
     {
       id: "EVT-006",
-      incident_id: "INC-20261030-DEMO1",
+      incident_id: "DEMO-CASE-01",
       timestamp: "2026-10-30T14:22:14.900",
       vehicle_id: "VEH_02",
       event_type: "IMPACT_COLLISION",
@@ -214,7 +217,7 @@ export const DEMO_TIMELINE = {
     },
     {
       id: "EVT-007",
-      incident_id: "INC-20261030-DEMO1",
+      incident_id: "DEMO-CASE-01",
       timestamp: "2026-10-30T14:22:15.000",
       vehicle_id: null,
       event_type: "WITNESS_REPORTED",
@@ -227,7 +230,7 @@ export const DEMO_TIMELINE = {
     },
     {
       id: "EVT-008",
-      incident_id: "INC-20261030-DEMO1",
+      incident_id: "DEMO-CASE-01",
       timestamp: "2026-10-30T14:22:16.400",
       vehicle_id: "VEH_01",
       event_type: "VEHICLE_STOPPING",
@@ -240,7 +243,7 @@ export const DEMO_TIMELINE = {
     },
     {
       id: "EVT-009",
-      incident_id: "INC-20261030-DEMO1",
+      incident_id: "DEMO-CASE-01",
       timestamp: "2026-10-30T14:22:17.200",
       vehicle_id: "VEH_02",
       event_type: "VEHICLE_STOPPING",
@@ -255,7 +258,7 @@ export const DEMO_TIMELINE = {
 };
 
 export const DEMO_CONTRADICTIONS = {
-  incident_id: "INC-20261030-DEMO1",
+  incident_id: "DEMO-CASE-01",
   total_contradictions: 2,
   categories_breakdown: {
     "SPEED_CONFLICT": 1,

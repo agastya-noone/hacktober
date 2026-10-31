@@ -133,6 +133,11 @@ class AIStatusResponse(BaseModel):
     message: str
 
 
+class AIConfigureRequest(BaseModel):
+    api_key: str = Field(..., min_length=5, description="Featherless AI secret API key")
+    model: Optional[str] = Field(None, description="Optional Featherless model identifier")
+
+
 class AISummaryRequest(BaseModel):
     incident_id: str
     focus_areas: Optional[List[str]] = None

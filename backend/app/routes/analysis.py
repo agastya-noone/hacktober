@@ -22,6 +22,7 @@ from app.schemas.analysis import (
     ContradictionAnalysisResponse,
     ContradictionItem,
     AIStatusResponse,
+    AIConfigureRequest,
     AISummaryRequest,
     AISummaryResponse,
     IncidentReportResponse,
@@ -60,6 +61,51 @@ async def get_ai_status():
         provider="Featherless AI",
         model=settings.FEATHERLESS_MODEL,
         base_url=settings.FEATHERLESS_BASE_URL,
+        message=message,
+    )
+
+
+@router.post("/api/ai/configure", response_model=AIStatusResponse)
+async def configure_ai_key(payload: AIConfigureRequest):
+    """Securely configures the server-side Featherless AI API key at runtime.
+    
+    Validates connectivity with Featherless AI servers without logging or exposing secrets.
+    """
+    clean_key = payload.api_key.strip()
+    featherless_service.set_api_key(clean_key)
+    if payload.model:
+        featherless_service.model = payload.model.strip()
+
+    is_avail, message = await featherless_service.check_availability()
+
+    # Also persist to backend/.env if writable
+    try:
+        env_path = settings.BASE_DIR / ".env"
+        env_lines = []
+        if env_path.exists():
+            env_lines = env_path.read_text(encoding="utf-8").splitlines()
+
+        # Update or append FEATHERLESS_API_KEY
+        key_found = False
+        new_lines = []
+        for line in env_lines:
+            if line.startswith("FEATHERLESS_API_KEY="):
+                new_lines.append(f"FEATHERLESS_API_KEY={clean_key}")
+                key_found = True
+            else:
+                new_lines.append(line)
+        if not key_found:
+            new_lines.append(f"FEATHERLESS_API_KEY={clean_key}")
+
+        env_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+    except Exception as e:
+        logger.warning("Could not persist API key to .env: %s", str(e))
+
+    return AIStatusResponse(
+        is_available=is_avail,
+        provider="Featherless AI",
+        model=featherless_service.model,
+        base_url=featherless_service.base_url,
         message=message,
     )
 

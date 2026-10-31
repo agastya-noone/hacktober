@@ -15,15 +15,36 @@ import {
 import * as THREE from 'three';
 import { DEMO_TELEMETRY_POINTS } from '../services/demoData';
 
-export default function ReconstructionPage({ incident, timeline, evidence = [] }) {
+export default function ReconstructionPage({ 
+  incident, 
+  timeline, 
+  evidence = [], 
+  telemetryPoints = [], 
+  vehicles = [], 
+  isDemo = false 
+}) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [viewMode, setViewMode] = useState('3D'); // '3D' | '2D_OPTICAL'
   const canvasRef = useRef(null);
   const threeSceneRef = useRef(null);
 
-  const points = DEMO_TELEMETRY_POINTS;
-  const currentData = points[currentStep] || points[0];
+  const points = (telemetryPoints && telemetryPoints.length > 0)
+    ? telemetryPoints
+    : (isDemo ? DEMO_TELEMETRY_POINTS : []);
+
+  const veh1Name = vehicles[0]?.vehicle_id || 'VEH_01';
+  const veh2Name = vehicles[1]?.vehicle_id || 'VEH_02';
+
+  const currentData = points.length > 0 ? (points[currentStep] || points[0]) : {
+    t: '00:00:00',
+    veh1_speed: 0,
+    veh2_speed: 0,
+    veh1_accel: 0,
+    veh2_accel: 0,
+    veh1_brake: 0,
+    veh2_brake: 0,
+  };
 
   // Playback loop
   useEffect(() => {
@@ -138,9 +159,10 @@ export default function ReconstructionPage({ incident, timeline, evidence = [] }
   useEffect(() => {
     if (!threeSceneRef.current) return;
     const { veh1Mesh, veh2Mesh } = threeSceneRef.current;
+    if (!veh1Mesh || !veh2Mesh) return;
 
     // Calculate kinematic positions from speed profile
-    const progressFactor = currentStep / (points.length - 1);
+    const progressFactor = points.length > 1 ? Math.min(1, Math.max(0, currentStep / (points.length - 1))) : 0;
     
     // Vehicle 1 moves from x=0 to x=12 and stops
     const v1_x = Math.min(11, progressFactor * 16);
@@ -204,15 +226,15 @@ export default function ReconstructionPage({ incident, timeline, evidence = [] }
                   Timeline Clock: {currentData.t}
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-blue-700 font-bold">VEH_01:</span>
-                  <span>{currentData.veh1_speed.toFixed(1)} km/h</span>
+                  <span className="text-blue-700 font-bold">{veh1Name}:</span>
+                  <span>{(currentData.veh1_speed || 0).toFixed(1)} km/h</span>
                   <span className={currentData.veh1_brake ? 'text-red-600 font-bold' : 'text-slate-400'}>
                     [BRAKE: {currentData.veh1_brake ? 'ON' : 'OFF'}]
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-red-700 font-bold">VEH_02:</span>
-                  <span>{currentData.veh2_speed.toFixed(1)} km/h</span>
+                  <span className="text-red-700 font-bold">{veh2Name}:</span>
+                  <span>{(currentData.veh2_speed || 0).toFixed(1)} km/h</span>
                   <span className={currentData.veh2_brake ? 'text-red-600 font-bold' : 'text-slate-400'}>
                     [BRAKE: {currentData.veh2_brake ? 'ON' : 'OFF'}]
                   </span>
@@ -244,7 +266,7 @@ export default function ReconstructionPage({ incident, timeline, evidence = [] }
                 }}
               >
                 <div className="bg-emerald-600 text-white text-[9px] font-mono px-1 py-0.5 rounded-xs inline-block">
-                  TRACK-01 [VEH_01] {currentData.veh1_speed.toFixed(0)} km/h
+                  TRACK-01 [{veh1Name}] {(currentData.veh1_speed || 0).toFixed(0)} km/h
                 </div>
               </div>
 
@@ -259,7 +281,7 @@ export default function ReconstructionPage({ incident, timeline, evidence = [] }
                 }}
               >
                 <div className="bg-red-600 text-white text-[9px] font-mono px-1 py-0.5 rounded-xs inline-block">
-                  TRACK-02 [VEH_02] {currentData.veh2_speed.toFixed(0)} km/h
+                  TRACK-02 [{veh2Name}] {(currentData.veh2_speed || 0).toFixed(0)} km/h
                 </div>
               </div>
 

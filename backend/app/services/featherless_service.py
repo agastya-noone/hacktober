@@ -17,10 +17,21 @@ class FeatherlessAIService:
     """
 
     def __init__(self):
-        self.api_key = settings.FEATHERLESS_API_KEY.strip() if settings.FEATHERLESS_API_KEY else ""
+        self._api_key = settings.FEATHERLESS_API_KEY.strip() if settings.FEATHERLESS_API_KEY else ""
         self.base_url = settings.FEATHERLESS_BASE_URL.rstrip("/")
         self.model = settings.FEATHERLESS_MODEL
         self.timeout = 30.0
+
+    @property
+    def api_key(self) -> str:
+        return self._api_key or os.getenv("FEATHERLESS_API_KEY", "").strip()
+
+    @api_key.setter
+    def api_key(self, key: str):
+        self._api_key = key.strip()
+
+    def set_api_key(self, key: str):
+        self._api_key = key.strip()
 
     @property
     def is_configured(self) -> bool:

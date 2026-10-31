@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_BYTES: int = int(os.getenv("MAX_UPLOAD_SIZE_BYTES", str(100 * 1024 * 1024)))  # 100MB
 
     # Featherless AI Settings (server-side only)
-    FEATHERLESS_API_KEY: str = os.getenv("FEATHERLESS_API_KEY", "")
-    FEATHERLESS_MODEL: str = os.getenv("FEATHERLESS_MODEL", "meta-llama/Meta-Llama-3.1-8B-Instruct")
+    FEATHERLESS_API_KEY: str = os.getenv("FEATHERLESS_API_KEY", "rc_936bdec0715d0dd8c8499eb7ec1e96e9eefa67034dbabdd56345cc099c340442")
+    FEATHERLESS_MODEL: str = os.getenv("FEATHERLESS_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
     FEATHERLESS_BASE_URL: str = os.getenv("FEATHERLESS_BASE_URL", "https://api.featherless.ai/v1").rstrip("/")
 
     # CORS settings
